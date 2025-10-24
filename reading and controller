@@ -1,0 +1,29 @@
+import serial, time
+import vgamepad as vg
+
+ser = serial.Serial("COM5", 115200, timeout=0)
+gamepad = vg.VX360Gamepad()
+
+def map_angle_to_axis(angle, max_angle=90):
+    angle = max(-max_angle, min(max_angle, angle))
+    return angle / max_angle
+
+update_interval = 1 / 100  # 100 Hz
+last_update = 0
+
+while True:
+    if ser.in_waiting:
+        line = ser.readline().decode(errors="ignore").strip()
+        try:
+            roll = float(line)
+        except ValueError:
+            continue
+        print(roll)  # still instant feedback
+
+        # Only push to gamepad at 100 Hz
+        now = time.time()
+        if now - last_update >= update_interval:
+            x_axis = map_angle_to_axis(-roll)
+            gamepad.left_joystick_float(x_axis, 0)
+            gamepad.update()
+            last_update = now
